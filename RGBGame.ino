@@ -4,22 +4,30 @@
 #include <EEPROM.h>
 #include <Tlc5940.h> // pinovi 13,11,10,9 i 3 su zauzeti za TLC5940
 #include <Keypad.h> //zasad koristim ovu biblioteku, kasnije svoj kod možda
+
 int level = 1;
 int najveci=EEPROM.read(0); //maks. broj zasad je 255 
 int sekvenca[15]; //maksimalna duljina sekvence je 15
 int modifikator=0; //0-nema modifikatora 1 - plavi 2-žuti 3-narančasti 4-ljubičasti
 int brojLedica; //koliko ih treba upalit
 int pauza=1000;
+unsigned long finished;
+int tipkaPoRedu=0;
+int nijeIzgubio=1;
 // definiranje tipkala koristeći Keypad biblioteku
 const byte REDOVI=3;
 const byte STUPCI=3;
-byte redPinovi[REDOVI]= {5,4,2};
-byte stupacPinovi[STUPCI]= {8,7,6};
+byte redPinovi[REDOVI]= {8,7,6};
+byte stupacPinovi[STUPCI]= {5,4,2};
 
 char poljeTipkala[REDOVI][STUPCI]= {
-  {'1','2','3'},
-  {'4','5','6'},
-  {'7','8','9'}
+  {'0','1','2'},
+  {'3','4','5'},
+  {'6','7','8'},
+  
+  
+
+  
 };
 
 Keypad tipkala = Keypad(makeKeymap(poljeTipkala),redPinovi,stupacPinovi,REDOVI,STUPCI);
@@ -36,15 +44,17 @@ void prikaziSekvencu(){
       will immediately return 1 without shifting in the new data.
       To ensure that a call to update() does shift in new data, use 
        while(Tlc.update()); */
-      delay(1000);
+      delay(500);
       Tlc.clear();
       while(Tlc.update());
+      delay(pauza);
    
       
       
       Serial.println("ovdje");
      
     }
+    
     
   }
     
@@ -64,7 +74,9 @@ void generirajSekvencu(){
   }
   for(int i=0;i<brojLedica;i++){
     sekvenca[i]=random(0,8);
+    
   }
+  finished=millis();
 }
 void setup() {
   Serial.begin(9600);
@@ -76,7 +88,7 @@ void setup() {
 
   generirajSekvencu();
   prikaziSekvencu();
-
+  Serial.println(finished);
  
   
   //delay(2550);
@@ -86,9 +98,38 @@ void setup() {
 }
 
 void loop() {
+
+    
+    if(nijeIzgubio){
+     
+     
+   char tipka = tipkala.getKey();
+   
+   if(tipka && (tipka-48)==sekvenca[tipkaPoRedu]){//(tipka-48) zbog ASCII
+    Serial.println("TOČNO");
+    tipkaPoRedu++;
+    if(tipkaPoRedu==brojLedica){
+      tipkaPoRedu=0;
+      level++;
+      Serial.println("=================");
+      Serial.println(level);
+      Serial.println("==============");
+      
+      generirajSekvencu();
+      delay(3000);
+      prikaziSekvencu();
+    }
+   }
+   else if(tipka){
+    Serial.println("IZGUBIO SI");
+    nijeIzgubio=0;
+   }
+   
+ 
+    
+    }
+  EEPROM.write(5,millis());
   
-  
-  
-}
+  }
   
 
