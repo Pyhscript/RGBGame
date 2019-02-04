@@ -1,5 +1,5 @@
 /*Realizacija igrice uz pomoć Arduina
- * Benjamin Nadarevič
+ * Benjamin Nadarević
  */
 #include <EEPROM.h>
 #include <Tlc5940.h> // pinovi 13,11,10,9 i 3 su zauzeti za TLC5940
