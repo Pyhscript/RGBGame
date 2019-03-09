@@ -136,7 +136,7 @@ void displej(int porukaID) {
     Tlc.set(31, 4095);
     Tlc.set(30, 4095);
     digitalWrite(segment_f, LOW);
-    while(Tlc.update());
+    while (Tlc.update());
 
     ocistiDisplej();
 
@@ -144,7 +144,7 @@ void displej(int porukaID) {
     digitalWrite(predzadnjaZnamenka, LOW);
     delay(1);
     digitalWrite(zadnjaZnamenka, HIGH);
-    displej(5); 
+    displej(5);
 
 
 
@@ -359,7 +359,7 @@ void loop() {
 
 
     char tipka = tipkala.getKey();
-    displej(level-1); //broj bodova
+    displej(level - 1); //broj bodova
 
 
 
@@ -387,10 +387,14 @@ void loop() {
 
         if (level > najveci) {
           for (int i = 0; i < 10; i++) {
+            long timer = millis();
+            while (millis() - timer <= 300) {
+              displej(-1);
+            }
             ocistiDisplej();
             delay(300);
-            displej(-1);
-            delay(300);
+
+
           }
           ocistiDisplej();
           EEPROM.write(0, level);
@@ -418,8 +422,5 @@ void loop() {
     displej(-2);
   }
 
-
-
 }
-
 
