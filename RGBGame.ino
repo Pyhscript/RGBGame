@@ -60,24 +60,36 @@ void displej(int porukaID) {
   if (porukaID >= 0) { //manje od 0 je rezervirano za tekstualne poruke na 7-segmentnom displeju (HS(HIGHSCORE) - novi rekord , LS(LOST) izgubio )
     //Serial.println("trebao bi displejat");
 
-    if (porukaID < 10) {
-      digitalWrite(zadnjaZnamenka, HIGH);
+    if (porukaID >= 10) {
+      ocistiDisplej();
+      digitalWrite(predzadnjaZnamenka, HIGH);
+      digitalWrite(zadnjaZnamenka, LOW);
+      displej(porukaID / 10);
+      ocistiDisplej();
+
       digitalWrite(predzadnjaZnamenka, LOW);
+      ocistiDisplej();
+      delay(1);
+      digitalWrite(zadnjaZnamenka, HIGH);
+      displej(porukaID % 10);
+      ocistiDisplej();
 
-      if (bitRead(segment_brojevi[porukaID], 0) == 1) {
-        digitalWrite(segment_g, LOW);
+    }
 
-      }
+    if (bitRead(segment_brojevi[porukaID], 0) == 1) {
+      digitalWrite(segment_g, LOW);
 
-      if (bitRead(segment_brojevi[porukaID], 1) == 1) {
-        digitalWrite(segment_f, LOW);
-      }
+    }
 
-      for (int i = 2; i < 7; i++) {
-        if (bitRead(segment_brojevi[porukaID], i) == 1) {
-          Tlc.set((31 - (i - 2)), 4095); //a je spojen na TLC pin 27, b na 28, c na 29, d na 30, e na 31
-          while (Tlc.update());
-        }
+    if (bitRead(segment_brojevi[porukaID], 1) == 1) {
+      digitalWrite(segment_f, LOW);
+    }
+
+    for (int i = 2; i < 7; i++) {
+      if (bitRead(segment_brojevi[porukaID], i) == 1) {
+        Tlc.set((31 - (i - 2)), 4095); //a je spojen na TLC pin 27, b na 28, c na 29, d na 30, e na 31
+        //Serial.println("ovdje"); //trebalo je maknuti sve serial.printove zato jer su usporavali vrijeme osvježavanja 7-segmentnog displeja (titrao je)
+        while (Tlc.update());
       }
     }
 
@@ -86,17 +98,56 @@ void displej(int porukaID) {
 
 
 
+
   }
 
-  else if (porukaID == -1) { //"H" zasad
-    Serial.println("TREBA PRIKAZATI H");
-    digitalWrite(zadnjaZnamenka, HIGH);
+  else if (porukaID == -1) {
+    //Serial.println("TREBA PRIKAZATI H");
+    //prikazuje HS (kao HIGHSCORE - srušen rekord)
+    ocistiDisplej();
+    digitalWrite(predzadnjaZnamenka, HIGH);
+    digitalWrite(zadnjaZnamenka, LOW);
+
+
     digitalWrite(segment_f, LOW);
     digitalWrite(segment_g, LOW);
     Tlc.set(31, 4095);
     Tlc.set(29, 4095);
     Tlc.set(28, 4095);
     while (Tlc.update());
+
+    ocistiDisplej();
+
+
+    digitalWrite(predzadnjaZnamenka, LOW);
+    delay(1); //bez ovog ostane upaljen segment e na zadnjoj znamenci (blijedo, ali ipak upaljen)
+    digitalWrite(zadnjaZnamenka, HIGH);
+    displej(5); //5 izgleda kao S
+
+
+
+  }
+
+  else if (porukaID == -2) { //LS - kao skraćeno za "LOST" - izgubljena igra
+    ocistiDisplej();
+    digitalWrite(predzadnjaZnamenka, HIGH);
+    digitalWrite(zadnjaZnamenka, LOW);
+
+    Tlc.set(31, 4095);
+    Tlc.set(30, 4095);
+    digitalWrite(segment_f, LOW);
+    while(Tlc.update());
+
+    ocistiDisplej();
+
+
+    digitalWrite(predzadnjaZnamenka, LOW);
+    delay(1);
+    digitalWrite(zadnjaZnamenka, HIGH);
+    displej(5); 
+
+
+
   }
 }
 
@@ -154,7 +205,7 @@ void prikaziSekvencu() {
       will immediately return 1 without shifting in the new data.
       To ensure that a call to update() does shift in new data, use
        while(Tlc.update()); */
-    delay(500);
+    delay(300);
     Tlc.clear();
     while (Tlc.update());
     delay(pauza);
@@ -271,27 +322,29 @@ void generirajSekvencu() {
   finished = millis();
 }
 void setup() {
-  
+
   pinMode(predzadnjaZnamenka, OUTPUT);
   pinMode(zadnjaZnamenka, OUTPUT);
   pinMode(segment_f, OUTPUT);
   pinMode(segment_g, OUTPUT);
   digitalWrite(segment_f, HIGH);
   digitalWrite(segment_g, HIGH);
+  digitalWrite(zadnjaZnamenka, HIGH);
 
-  Serial.begin(9600);
+  //Serial.begin(9600);
   // put your setup code here, to run once:
   Tlc.init(0);
-  Serial.println("INIT");
+  //Serial.println("INIT");
   // delay(2000);
   randomSeed(analogRead(4));
   //broj bodova
-  Serial.print("najveci:");
-  Serial.println(najveci);
+  // Serial.print("najveci:");
+  //Serial.println(najveci);
+  delay(2000); //pauza prije početka
   generirajSekvencu();
   prikaziSekvencu();
   //Serial.println(finished);
- 
+
 
   //delay(2550);
 
@@ -306,14 +359,18 @@ void loop() {
 
 
     char tipka = tipkala.getKey();
-    displej(level);
+    displej(level-1); //broj bodova
+
+
 
 
     if (tipka && (tipka - 48) == finalnaSekvenca[tipkaPoRedu]) { //(tipka-48) zbog ASCII
       //Serial.println(duljinaSekvence);
 
       //Serial.println("TOČNO");
+
       tipkaPoRedu++;
+
       if (tipkaPoRedu == duljinaSekvence) {
 
         tipkaPoRedu = 0;
@@ -322,32 +379,33 @@ void loop() {
         ocistiDisplej();
         delay(100);
 
-        Serial.println("TOČNO");
-        Serial.println("=================");
-        Serial.println(level);
-        Serial.println("==============");
+
+        /* Serial.println("TOČNO");
+          Serial.println("=================");
+          Serial.println(level);
+          Serial.println("==============");*/
 
         if (level > najveci) {
           for (int i = 0; i < 10; i++) {
             ocistiDisplej();
             delay(300);
             displej(-1);
-            delay(300);      
+            delay(300);
           }
           ocistiDisplej();
           EEPROM.write(0, level);
         }
 
         generirajSekvencu();
-        delay(3000);
+        delay(1000);
         prikaziSekvencu();
-        
+
       }
     }
     else if (tipka) {
       //Serial.println(duljinaSekvence);
       // Serial.println(tipka-48);
-      Serial.println("IZGUBIO SI");
+      //Serial.println("IZGUBIO SI");
       nijeIzgubio = 0;
       ocistiDisplej(); // da se očisti samo jednom
     }
@@ -357,7 +415,7 @@ void loop() {
   }
   else {
 
-    displej(0); //promjeni u LS ili nešto
+    displej(-2);
   }
 
 
