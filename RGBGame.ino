@@ -14,9 +14,10 @@ int listaNarancastih[15];
 int listaPlavih[15];
 int brojacPlavih;
 int brojacNarancastih;
-bool unazad= false;
+bool unazad = false;
 int brojLedica; //koliko ih treba upalit
 int pauza = 1000;
+int duljina=500; //duljina bljeska
 unsigned long finished;
 int tipkaPoRedu = 0;
 int nijeIzgubio = 1;
@@ -46,8 +47,8 @@ int segment_g = 17; //segmente a-e kontroliram koristeći slobodne pinove drugog
 
 Keypad tipkala = Keypad(makeKeymap(poljeTipkala), redPinovi, stupacPinovi, REDOVI, STUPCI);
 
-void resetirajHighscore(){
-  EEPROM.write(0,0);
+void resetirajHighscore() {
+  EEPROM.write(0, 0);
 }
 
 void ocistiDisplej() {
@@ -175,34 +176,38 @@ void prikaziSekvencu() {
 
     }
 
-
-
-
     else {
 
+      if (unazad == false || (unazad == true && i != brojLedica - 1)) {
 
-      int postavljen = 0;
-      for (int j = 0; j < brojacNarancastih; j++) {
-        if (i == listaNarancastih[j]) {
-          Tlc.set(sekvenca[i] + (sekvenca[i] * 2) + 1, 295); //ZELENA u ovom omjeru s crvenom daje narancastu
-          Tlc.set(sekvenca[i] + (sekvenca[i] + 1) * 2, 4095); //CRVENA
-          postavljen = 1;
+        int postavljen = 0;
+        for (int j = 0; j < brojacNarancastih; j++) {
+          if (i == listaNarancastih[j]) {
+            Tlc.set(sekvenca[i] + (sekvenca[i] * 2) + 1, 295); //ZELENA u ovom omjeru s crvenom daje narancastu
+            Tlc.set(sekvenca[i] + (sekvenca[i] + 1) * 2, 4095); //CRVENA
+            postavljen = 1;
 
+          }
         }
-      }
-      for (int j = 0; j < brojacPlavih; j++) {
-        if (i == listaPlavih[j]) {
-          Tlc.set(sekvenca[i] + (sekvenca[i] * 2), 4095); // PLAVA
-          postavljen = 1;
+        for (int j = 0; j < brojacPlavih; j++) {
+          if (i == listaPlavih[j]) {
+            Tlc.set(sekvenca[i] + (sekvenca[i] * 2), 4095); // PLAVA
+            postavljen = 1;
 
+          }
         }
+
+        if (postavljen == 0) {
+          Tlc.set(sekvenca[i] + (sekvenca[i] + 1) * 2, 4095);
+        }
+
       }
 
-      if (postavljen == 0) {
-        Tlc.set(sekvenca[i] + (sekvenca[i] + 1) * 2, 4095);
+      else {
+        Tlc.set(sekvenca[i] + (sekvenca[i] + 1) * 2, 4095); //CRVENA
+        Tlc.set(sekvenca[i] + (sekvenca[i] * 2), 4095); //PLAVA
+        //zajedno ljubičasta
       }
-
-
 
     }
 
@@ -214,7 +219,7 @@ void prikaziSekvencu() {
       will immediately return 1 without shifting in the new data.
       To ensure that a call to update() does shift in new data, use
        while(Tlc.update()); */
-    delay(300);
+    delay(duljina);
     Tlc.clear();
     while (Tlc.update());
     delay(pauza);
@@ -262,29 +267,61 @@ void prikaziSekvencu() {
 
   }
 
-  
+  if (unazad == true) {
+    int privremenaFinalnaSekvenca[indeks]; 
+    //Serial.println(indeks);
+  //  Serial.println("!!!!!!!!!!!!!!!");
+    for (int i = 0; i < indeks; i++) {
+      privremenaFinalnaSekvenca[i] = finalnaSekvenca[i];
+      //Serial.println(privremenaFinalnaSekvenca[i]);
+      //delay(1000);
+      
+    }
+    Serial.println("????????????");
+    int x = 0;
+    for (int i = indeks-1; i >= 0; i--) {
+      finalnaSekvenca[x] = privremenaFinalnaSekvenca[i];
+      //Serial.println(finalnaSekvenca[x]);
+    //  delay(1000);
+      x++;
+    }
 
- 
+   // delay(3000);
+  }
+
+
+
+
 
 
 
 
 }
+
 void generirajSekvencu() {
   int barJedanCrveni; //kako bi se izbjegla malo vjerojatna, ali ipak moguca situacija da su svi bljeskovi narancasti
   int slucajnaBoja;
 
   duljinaSekvence = 0;
-
+  
   if  (level <= 5) {
     brojLedica = level + 1;
     duljinaSekvence = brojLedica;
   }
 
   else {
+    
+    if(pauza>=200){
+    pauza=pauza-(level-6)*20; //smanjuj pauzu među bljeskovima
+    }
+    if(duljina>250){
+      duljina=duljina-(level-6)*10;
+    }
     brojLedica = 3 + (level - 6);
+    if (brojLedica>7){
+      brojLedica=7; //maks. 7
+    }
   }
-
   for (int i = 0; i < brojLedica; i++) {
     sekvenca[i] = random(9);
 
@@ -294,41 +331,57 @@ void generirajSekvencu() {
   if (level > 5) {
     //uvode se boje za koja vrijede druga pravila, narancasta=>ignoriraj  , plava=>pritisni dvaput
 
+
+
     for (int i = 0; i < 15; i++) {
       listaNarancastih[i] = -1;
-      listaPlavih[i] = -1; //čišćenje polja zbog "otpadnih vrijednosti"
+      listaPlavih[i] = -1; //čišćenje polja zbog "otpadnih vrijednosti" iz prethodnih ciklusa
     }
 
+    if (level > 10) {
+      if (random(3) == 1) {
+        unazad = true; //jednom u tri nakon desetog levela
+        brojLedica = random(3,6); //ako ih treba ponovit za nazad onda je 5 ledica maksimum, 3 minimum
+      }
+      else {
+        unazad = false; //da promjeni natrag ako je u prethodnom levelu bilo true
+      }
+    }
     barJedanCrveni = random(brojLedica);
     brojacNarancastih = 0;
     brojacPlavih = 0;
     for (int i = 0; i < brojLedica; i++) {
-      if (i != barJedanCrveni) {
-        slucajnaBoja = random(3); //33.33% sanse za svaku boju
-        if (slucajnaBoja == 0) {
-          listaNarancastih[brojacNarancastih] = i;
-          brojacNarancastih++;
-        }
+      if (unazad == false || (unazad == true && i != brojLedica - 1)) {
+        if (i != barJedanCrveni) {
 
-        else if (slucajnaBoja == 1) {
-          listaPlavih[brojacPlavih] = i;
-          brojacPlavih++;
-          duljinaSekvence += 2;
-        }
+          slucajnaBoja = random(3); //33.33% sanse za svaku boju
 
+      
+          if (slucajnaBoja == 0) {
+            listaNarancastih[brojacNarancastih] = i;
+            brojacNarancastih++;
+          }
+
+          else if (slucajnaBoja == 1) {
+            listaPlavih[brojacPlavih] = i;
+            brojacPlavih++;
+            duljinaSekvence += 2;
+          }
+
+          else {
+            duljinaSekvence += 1;
+          }
+
+
+        }
         else {
           duljinaSekvence += 1;
         }
-
-
       }
-      else {
-        duljinaSekvence += 1;
-      }
+     else{
+      duljinaSekvence+=1;
+     }
     }
-   if(level>=10){
-    
-   }
 
   }
 
@@ -355,10 +408,10 @@ void setup() {
   //broj bodova
   // Serial.print("najveci:");
   //Serial.println(najveci);
-  long reset=millis();
-  while(millis()-reset<=3000){
-    char tipkaZaReset=tipkala.getKey();
-    if(tipkaZaReset && tipkaZaReset-48==8){
+  long reset = millis();
+  while (millis() - reset <= 3000) {
+    char tipkaZaReset = tipkala.getKey();
+    if (tipkaZaReset && tipkaZaReset - 48 == 8) {
       resetirajHighscore();
     }
   }
@@ -378,7 +431,7 @@ void loop() {
 
   if (nijeIzgubio) {
 
-
+    
     char tipka = tipkala.getKey();
     displej(level - 1); //broj bodova
 
