@@ -14,6 +14,7 @@ int listaNarancastih[15];
 int listaPlavih[15];
 int brojacPlavih;
 int brojacNarancastih;
+bool unazad= false;
 int brojLedica; //koliko ih treba upalit
 int pauza = 1000;
 unsigned long finished;
@@ -45,6 +46,10 @@ int segment_g = 17; //segmente a-e kontroliram koristeći slobodne pinove drugog
 
 Keypad tipkala = Keypad(makeKeymap(poljeTipkala), redPinovi, stupacPinovi, REDOVI, STUPCI);
 
+void resetirajHighscore(){
+  EEPROM.write(0,0);
+}
+
 void ocistiDisplej() {
   digitalWrite(segment_f, HIGH);
   digitalWrite(segment_g, HIGH);
@@ -68,32 +73,30 @@ void displej(int porukaID) {
       ocistiDisplej();
 
       digitalWrite(predzadnjaZnamenka, LOW);
-      ocistiDisplej();
-      delay(1);
+
       digitalWrite(zadnjaZnamenka, HIGH);
       displej(porukaID % 10);
-      ocistiDisplej();
 
     }
 
     if (bitRead(segment_brojevi[porukaID], 0) == 1) {
       digitalWrite(segment_g, LOW);
       delay(1);
-      digitalWrite(segment_g,HIGH);
+      digitalWrite(segment_g, HIGH);
 
     }
 
     if (bitRead(segment_brojevi[porukaID], 1) == 1) {
       digitalWrite(segment_f, LOW);
       delay(1);
-      digitalWrite(segment_f,HIGH);
+      digitalWrite(segment_f, HIGH);
     }
 
     for (int i = 2; i < 7; i++) {
       if (bitRead(segment_brojevi[porukaID], i) == 1) {
         Tlc.set((31 - (i - 2)), 4095); //a je spojen na TLC pin 27, b na 28, c na 29, d na 30, e na 31
-        while(Tlc.update());
-        Tlc.set((31-(i-2)),0);
+        while (Tlc.update());
+        Tlc.set((31 - (i - 2)), 0);
         //Serial.println("ovdje"); //trebalo je maknuti sve serial.printove zato jer su usporavali vrijeme osvježavanja 7-segmentnog displeja (titrao je)
         while (Tlc.update());
       }
@@ -259,6 +262,10 @@ void prikaziSekvencu() {
 
   }
 
+  
+
+ 
+
 
 
 
@@ -319,13 +326,15 @@ void generirajSekvencu() {
         duljinaSekvence += 1;
       }
     }
+   if(level>=10){
+    
+   }
 
   }
 
 
 
 
-  finished = millis();
 }
 void setup() {
 
@@ -346,7 +355,13 @@ void setup() {
   //broj bodova
   // Serial.print("najveci:");
   //Serial.println(najveci);
-  delay(2000); //pauza prije početka
+  long reset=millis();
+  while(millis()-reset<=3000){
+    char tipkaZaReset=tipkala.getKey();
+    if(tipkaZaReset && tipkaZaReset-48==8){
+      resetirajHighscore();
+    }
+  }
   generirajSekvencu();
   prikaziSekvencu();
   //Serial.println(finished);
