@@ -78,16 +78,22 @@ void displej(int porukaID) {
 
     if (bitRead(segment_brojevi[porukaID], 0) == 1) {
       digitalWrite(segment_g, LOW);
+      delay(1);
+      digitalWrite(segment_g,HIGH);
 
     }
 
     if (bitRead(segment_brojevi[porukaID], 1) == 1) {
       digitalWrite(segment_f, LOW);
+      delay(1);
+      digitalWrite(segment_f,HIGH);
     }
 
     for (int i = 2; i < 7; i++) {
       if (bitRead(segment_brojevi[porukaID], i) == 1) {
         Tlc.set((31 - (i - 2)), 4095); //a je spojen na TLC pin 27, b na 28, c na 29, d na 30, e na 31
+        while(Tlc.update());
+        Tlc.set((31-(i-2)),0);
         //Serial.println("ovdje"); //trebalo je maknuti sve serial.printove zato jer su usporavali vrijeme osvježavanja 7-segmentnog displeja (titrao je)
         while (Tlc.update());
       }
